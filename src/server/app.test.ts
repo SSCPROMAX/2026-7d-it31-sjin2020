@@ -22,6 +22,56 @@ describe('API', () => {
     expect(body).toHaveLength(1)
   })
 
-  // TODO Aufgabe 5: Schreibe Tests für POST (201 + 400 bei leerem Titel), PATCH und DELETE.
-  // Vorlage: snippets/05-api.test.ts
+  it('POST /api/items erstellt einen Eintrag und weist ungültige Eingaben zurück', async () => {
+    const instance = app()
+    const created = await instance.request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Neuer Eintrag' }),
+    })
+    expect(created.status).toBe(201)
+    expect(await created.json()).toMatchObject({ title: 'Neuer Eintrag', category: 'Allgemein' })
+
+    const invalid = await instance.request('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '' }),
+    })
+    expect(invalid.status).toBe(400)
+  })
+
+  it('PATCH /api/items/:id aktualisiert, validiert und findet Einträge', async () => {
+    const instance = app()
+    const updated = await instance.request('/api/items/1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: true }),
+    })
+    expect(updated.status).toBe(200)
+    expect(await updated.json()).toMatchObject({ id: 1, done: true })
+
+    const invalid = await instance.request('/api/items/1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: 'ja' }),
+    })
+    expect(invalid.status).toBe(400)
+    expect((await instance.request('/api/items/2', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: true }),
+    })).status).toBe(404)
+    expect((await instance.request('/api/items/abc', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ done: true }),
+    })).status).toBe(400)
+  })
+
+  it('DELETE /api/items/:id löscht Einträge und meldet ungültige oder unbekannte IDs', async () => {
+    const instance = app()
+    expect((await instance.request('/api/items/1', { method: 'DELETE' })).status).toBe(204)
+    expect((await instance.request('/api/items/1', { method: 'DELETE' })).status).toBe(404)
+    expect((await instance.request('/api/items/abc', { method: 'DELETE' })).status).toBe(400)
+  })
 })
