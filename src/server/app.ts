@@ -10,6 +10,21 @@ export function createApp(store: Store) {
 
   app.get('/api/items', async (c) => c.json(await store.list()))
 
+  app.get('/api/items/:id', async (c) => {
+    
+    const id = Number(c.req.param('id'))
+    if (!Number.isSafeInteger(id) || id < 1) {
+      return c.json({ error: 'Ungültige ID' }, 400)
+    }
+    
+    
+    const item = (await store.list()).find((eintrag) => eintrag.id === id)
+    if (!item) {
+      return c.json({ error: 'Eintrag nicht gefunden' }, 404)
+    }
+    return c.json(item)
+  })
+
   app.post('/api/items', async (c) => {
     const body = await c.req.json().catch(() => null)
     const parsed = itemInput.safeParse(body)
